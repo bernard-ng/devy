@@ -52,7 +52,7 @@ jobs:
         run: |
           name="devy-${GITHUB_REF_NAME}-${{ matrix.target }}"
           mkdir "${name}"
-          cp "target/${{ matrix.target }}/release/devy" README.md .env.example "${name}/"
+          cp "target/${{ matrix.target }}/release/devy" README.md LICENSE .env.example "${name}/"
           tar czf "${name}.tar.gz" "${name}"
           shasum -a 256 "${name}.tar.gz" > "${name}.tar.gz.sha256"
       - uses: actions/upload-artifact@v4

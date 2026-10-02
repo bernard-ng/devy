@@ -3,6 +3,7 @@ name = "devy"
 version = "0.1.0"
 edition = "2024"
 description = "Devy: Realtime Notifications"
+license = "MIT"
 
 [[bin]]
 name = "devy"

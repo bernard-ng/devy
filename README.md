@@ -37,3 +37,7 @@ Deliveries are verified with `X-Hub-Signature-256`; unsigned ones are rejected.
 - **New chat command**: add a variant to `sources/telegram/commands.rs::Command` and its answer.
 - **New destination** (Slack, Discord, ...): implement `domain::ports::Notifier`.
 - **New topic**: add a `Topic` variant; its thread id is configurable with `TELEGRAM_TOPIC_<NAME>`.
+
+## License
+
+[MIT](LICENSE)
