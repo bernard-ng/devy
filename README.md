@@ -20,6 +20,39 @@ cargo run -- webhook info | delete
 GitHub: add a webhook to `https://<host>/webhook/github`, content type `application/json`, secret = `GITHUB_WEBHOOK_SECRET`.
 Deliveries are verified with `X-Hub-Signature-256`; unsigned ones are rejected.
 
+## Deploy with systemd
+
+Telegram only calls HTTPS webhooks, so run Devy on loopback behind a TLS reverse proxy (Caddy, nginx, ...). The unit in [`deploy/systemd/devy.service`](deploy/systemd/devy.service) runs it as a sandboxed, throwaway user.
+
+```sh
+# 1. binary: from a release tarball (or `cargo build --release`)
+sudo install -m 755 devy /usr/local/bin/devy
+
+# 2. configuration: readable by root only, systemd passes it to the service
+sudo install -d -m 755 /etc/devy
+sudo install -m 600 .env.example /etc/devy/devy.env
+sudoedit /etc/devy/devy.env
+
+# 3. service
+sudo install -m 644 deploy/systemd/devy.service /etc/systemd/system/devy.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now devy
+
+# 4. register the Telegram webhook (once, and whenever the URL or secret changes)
+sudo systemd-run --pty --wait -p EnvironmentFile=/etc/devy/devy.env /usr/local/bin/devy webhook set
+```
+
+Reverse proxy, for example with Caddy:
+
+```
+devy.example.com {
+    reverse_proxy 127.0.0.1:8000
+}
+```
+
+Operate it with `systemctl status devy`, `journalctl -u devy -f` (set `RUST_LOG=debug` in the env file for more detail) and `systemctl restart devy` after editing the env file.
+To upgrade, replace `/usr/local/bin/devy` and restart the service.
+
 ## Architecture
 
 | Layer | Path | Knows about |

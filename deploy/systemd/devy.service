@@ -1,0 +1,46 @@
+[Unit]
+Description=Devy: realtime notifications (GitHub -> Telegram)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/devy serve
+EnvironmentFile=/etc/devy/devy.env
+# Devy sits behind a TLS reverse proxy, so keep it on loopback unless the env file says otherwise.
+Environment=DEVY_ADDR=127.0.0.1:8000
+
+Restart=on-failure
+RestartSec=5
+# On SIGTERM devy stops accepting webhooks and finishes pending Telegram deliveries.
+TimeoutStopSec=30
+
+# Runs as a throwaway unprivileged user; no files of its own are needed.
+DynamicUser=yes
+
+# Sandboxing
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+[Install]
+WantedBy=multi-user.target
