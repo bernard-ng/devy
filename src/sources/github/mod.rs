@@ -27,11 +27,16 @@ const HANDLED_EVENTS: &[&str] = &[
 
 pub struct GithubSource {
     secret: Secret,
+    excerpt_chars: usize,
 }
 
 impl GithubSource {
-    pub fn new(secret: Secret) -> Self {
-        Self { secret }
+    /// `excerpt_chars` caps how much of a comment or commit message is quoted.
+    pub fn new(secret: Secret, excerpt_chars: usize) -> Self {
+        Self {
+            secret,
+            excerpt_chars,
+        }
     }
 }
 
@@ -57,6 +62,9 @@ impl WebhookSource for GithubSource {
             .map_err(|e| SourceError::Malformed(format!("github `{name}` payload: {e}")))?;
 
         let activity = mapping::to_activity(event).map_err(|e| SourceError::Malformed(e.to_string()))?;
-        Ok(activity.map(|a| a.into_notification()).into_iter().collect())
+        Ok(activity
+            .map(|a| a.into_notification(self.excerpt_chars))
+            .into_iter()
+            .collect())
     }
 }

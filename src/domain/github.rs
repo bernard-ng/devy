@@ -7,9 +7,6 @@
 use crate::domain::notification::excerpt;
 use crate::domain::{Notification, Topic};
 
-/// Longest user-written body quoted in a message; leaves room for the surrounding text and link.
-const BODY_EXCERPT_CHARS: usize = 1500;
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Activity {
     Ping {
@@ -220,9 +217,9 @@ impl ReleaseAction {
 
 impl Activity {
     /// Renders the activity for the GitHub topic. Noisy, low-signal activity is delivered silently.
-    pub fn into_notification(self) -> Notification {
+    pub fn into_notification(self, excerpt_chars: usize) -> Notification {
         let silent = matches!(self, Self::Fork { .. } | Self::Star { .. });
-        let notification = Notification::to_topic(Topic::Github, self.render());
+        let notification = Notification::to_topic(Topic::Github, self.render(excerpt_chars));
         if silent {
             notification.silent()
         } else {
@@ -230,7 +227,7 @@ impl Activity {
         }
     }
 
-    fn render(&self) -> String {
+    fn render(&self, excerpt_chars: usize) -> String {
         match self {
             Self::Ping { zen } => format!("👉 Github ping {}", zen.as_deref().unwrap_or_default())
                 .trim_end()
@@ -249,7 +246,7 @@ impl Activity {
                     let mut text = format!(
                         "🔥 {pusher} pushed {} on {repository}\n\n{}",
                         target.label(),
-                        excerpt(head_message, BODY_EXCERPT_CHARS)
+                        excerpt(head_message, excerpt_chars)
                     );
                     if let Some(url) = url {
                         text.push_str(&format!("\n\n{url}"));
@@ -303,7 +300,7 @@ impl Activity {
                     };
                     let mut text = format!("👀 {actor} {verb} a pull request review");
                     if let Some(body) = body.as_deref().filter(|b| !b.trim().is_empty()) {
-                        text.push_str(&format!("\n\n{}", excerpt(body, BODY_EXCERPT_CHARS)));
+                        text.push_str(&format!("\n\n{}", excerpt(body, excerpt_chars)));
                     }
                     text.push_str(&format!("\n\n{url}"));
                     text
@@ -329,7 +326,7 @@ impl Activity {
                 };
                 format!(
                     "💬 {actor} {verb} an issue\n\n{}\n\n{url}",
-                    excerpt(body, BODY_EXCERPT_CHARS)
+                    excerpt(body, excerpt_chars)
                 )
             }
 
@@ -376,8 +373,10 @@ impl Activity {
 mod tests {
     use super::*;
 
+    const EXCERPT_CHARS: usize = 1500;
+
     fn text(activity: Activity) -> String {
-        activity.into_notification().text
+        activity.into_notification(EXCERPT_CHARS).text
     }
 
     #[test]
@@ -460,9 +459,9 @@ mod tests {
             action: IssueAction::Opened,
             url: "u".into(),
         };
-        assert!(star.into_notification().silent);
-        assert!(fork.into_notification().silent);
-        assert!(!issue.into_notification().silent);
+        assert!(star.into_notification(EXCERPT_CHARS).silent);
+        assert!(fork.into_notification(EXCERPT_CHARS).silent);
+        assert!(!issue.into_notification(EXCERPT_CHARS).silent);
     }
 
     #[test]

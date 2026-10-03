@@ -11,7 +11,7 @@ Telegram ─POST /webhook/telegram┘                         └──> Telegra
 ## Run
 
 ```sh
-cp .env.example .env        # fill in the secrets
+cp .env.example .env        # fill in the required values
 cargo run -- serve          # listens on DEVY_ADDR (default 0.0.0.0:8000)
 cargo run -- webhook set    # tell Telegram where the bot lives
 cargo run -- webhook info | delete
@@ -20,38 +20,23 @@ cargo run -- webhook info | delete
 GitHub: add a webhook to `https://<host>/webhook/github`, content type `application/json`, secret = `GITHUB_WEBHOOK_SECRET`.
 Deliveries are verified with `X-Hub-Signature-256`; unsigned ones are rejected.
 
-## Deploy with systemd
+## Install
 
-Telegram only calls HTTPS webhooks, so run Devy on loopback behind a TLS reverse proxy (Caddy, nginx, ...). The unit in [`deploy/systemd/devy.service`](deploy/systemd/devy.service) runs it as a sandboxed, throwaway user.
+On a Linux server with systemd, run:
 
 ```sh
-# 1. binary: from a release tarball (or `cargo build --release`)
-sudo install -m 755 devy /usr/local/bin/devy
-
-# 2. configuration: readable by root only, systemd passes it to the service
-sudo install -d -m 755 /etc/devy
-sudo install -m 600 .env.example /etc/devy/devy.env
-sudoedit /etc/devy/devy.env
-
-# 3. service
-sudo install -m 644 deploy/systemd/devy.service /etc/systemd/system/devy.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now devy
-
-# 4. register the Telegram webhook (once, and whenever the URL or secret changes)
-sudo systemd-run --pty --wait -p EnvironmentFile=/etc/devy/devy.env /usr/local/bin/devy webhook set
+curl -fsSL https://raw.githubusercontent.com/bernard-ng/devy/main/deploy/install.sh | sudo bash
 ```
 
-Reverse proxy, for example with Caddy:
+It installs the latest release, asks for your Telegram bot token, chat id and bot username, and starts Devy as a service. Run it again to upgrade.
 
-```
-devy.example.com {
-    reverse_proxy 127.0.0.1:8000
-}
+To remove Devy:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/bernard-ng/devy/main/deploy/uninstall.sh | sudo bash
 ```
 
-Operate it with `systemctl status devy`, `journalctl -u devy -f` (set `RUST_LOG=debug` in the env file for more detail) and `systemctl restart devy` after editing the env file.
-To upgrade, replace `/usr/local/bin/devy` and restart the service.
+Telegram only calls HTTPS webhooks, so put a reverse proxy with TLS (Caddy, nginx, ...) in front of Devy, which listens on `127.0.0.1:8000`. More options are in [`deploy/README.md`](deploy/README.md).
 
 ## Architecture
 

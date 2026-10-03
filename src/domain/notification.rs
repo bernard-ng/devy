@@ -1,9 +1,6 @@
 use std::fmt;
 use std::str::FromStr;
 
-/// Telegram rejects messages longer than this many characters.
-pub const MAX_TEXT_CHARS: usize = 4096;
-
 /// Logical channels of the community chat. Mapping a topic to an actual chat/thread is the
 /// notifier's concern, so the domain never deals with raw ids.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -37,19 +34,6 @@ impl Topic {
             Topic::Documents => "documents",
             Topic::Assets => "assets",
             Topic::Sharing => "sharing",
-        }
-    }
-
-    /// Thread ids of the chat.
-    pub fn default_thread_id(self) -> i32 {
-        match self {
-            Topic::General => 1,
-            Topic::Github => 4905,
-            Topic::Logs => 4919,
-            Topic::Notifications => 4998,
-            Topic::Documents => 4959,
-            Topic::Assets => 4921,
-            Topic::Sharing => 4957,
         }
     }
 }
@@ -113,14 +97,14 @@ impl Notification {
     fn new(destination: Destination, text: impl Into<String>) -> Self {
         Self {
             destination,
-            text: truncate(text.into(), MAX_TEXT_CHARS),
+            text: text.into(),
             silent: false,
         }
     }
 }
 
 /// Cuts `text` to at most `max` characters, ending with `…` when something was dropped.
-fn truncate(text: String, max: usize) -> String {
+pub fn truncate(text: String, max: usize) -> String {
     if text.chars().count() <= max {
         return text;
     }
@@ -141,9 +125,9 @@ mod tests {
 
     #[test]
     fn long_text_is_truncated_to_the_limit() {
-        let n = Notification::to_topic(Topic::Github, "é".repeat(MAX_TEXT_CHARS + 10));
-        assert_eq!(n.text.chars().count(), MAX_TEXT_CHARS);
-        assert!(n.text.ends_with('…'));
+        let cut = truncate("é".repeat(110), 100);
+        assert_eq!(cut.chars().count(), 100);
+        assert!(cut.ends_with('…'));
     }
 
     #[test]

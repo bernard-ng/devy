@@ -52,6 +52,7 @@ async fn serve() -> anyhow::Result<()> {
     let settings = Settings::from_env()?;
     let Settings {
         addr,
+        limits,
         telegram,
         github,
     } = settings;
@@ -62,10 +63,14 @@ async fn serve() -> anyhow::Result<()> {
             chat_id: telegram.chat_id,
             threads: telegram.topics.clone(),
         },
+        limits.max_text_chars,
     );
 
     let sources = Sources::new()
-        .with(GithubSource::new(github.webhook_secret))
+        .with(GithubSource::new(
+            github.webhook_secret,
+            limits.body_excerpt_chars,
+        ))
         .with(TelegramSource::new(
             telegram.webhook_secret,
             telegram.bot_username,
@@ -77,9 +82,12 @@ async fn serve() -> anyhow::Result<()> {
         .with_context(|| format!("binding {addr}"))?;
     tracing::info!(%addr, "devy is listening");
 
-    axum::serve(listener, crate::http::router(Arc::clone(&app)))
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(
+        listener,
+        crate::http::router(Arc::clone(&app), limits.max_body_bytes),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
 
     tracing::info!("draining pending notifications");
     app.drain().await;
@@ -92,7 +100,9 @@ async fn webhook(command: WebhookCommand) -> anyhow::Result<()> {
 
     match command {
         WebhookCommand::Set { url } => {
-            let url = url.unwrap_or(settings.webhook_url);
+            let url = url
+                .or(settings.webhook_url)
+                .context("no webhook URL: pass one or set TELEGRAM_WEBHOOK_URL")?;
             let parsed = url
                 .parse()
                 .with_context(|| format!("`{url}` is not a valid URL"))?;

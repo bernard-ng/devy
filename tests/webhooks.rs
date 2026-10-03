@@ -43,11 +43,11 @@ impl Harness {
     fn new() -> Self {
         let recorder = Arc::new(Recorder::default());
         let sources = Sources::new()
-            .with(GithubSource::new(Secret::new(GITHUB_SECRET)))
+            .with(GithubSource::new(Secret::new(GITHUB_SECRET), 1500))
             .with(TelegramSource::new(Secret::new(TELEGRAM_SECRET), "DdevyBot"));
         let app = Arc::new(App::new(sources, recorder.clone()));
         Self {
-            router: router(app.clone()),
+            router: router(app.clone(), 25 * 1024 * 1024),
             app,
             recorder,
         }

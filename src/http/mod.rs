@@ -12,14 +12,12 @@ use axum::routing::{get, post};
 use crate::app::{App, HandleError};
 use crate::sources::{SourceError, WebhookRequest};
 
-/// GitHub caps webhook payloads at 25 MB.
-const MAX_BODY_BYTES: usize = 25 * 1024 * 1024;
-
-pub fn router(app: Arc<App>) -> Router {
+/// `max_body_bytes` is the largest webhook payload accepted.
+pub fn router(app: Arc<App>, max_body_bytes: usize) -> Router {
     Router::new()
         .route("/health", get(|| async { "ok" }))
         .route("/webhook/{source}", post(webhook))
-        .layer(DefaultBodyLimit::max(MAX_BODY_BYTES))
+        .layer(DefaultBodyLimit::max(max_body_bytes))
         .with_state(app)
 }
 

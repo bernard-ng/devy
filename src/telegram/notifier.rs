@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use teloxide::prelude::*;
 use teloxide::types::{LinkPreviewOptions, MessageId, ReplyParameters, ThreadId};
 
+use crate::domain::notification::truncate;
 use crate::domain::ports::{Notifier, NotifyError};
 use crate::domain::{Destination, Notification, Topic};
 
@@ -11,17 +12,23 @@ use crate::domain::{Destination, Notification, Topic};
 #[derive(Debug, Clone)]
 pub struct TopicRouting {
     pub chat_id: i64,
+    /// Topics without a thread are sent to the chat itself.
     pub threads: HashMap<Topic, i32>,
 }
 
 pub struct TelegramNotifier {
     bot: Bot,
     routing: TopicRouting,
+    max_text_chars: usize,
 }
 
 impl TelegramNotifier {
-    pub fn new(bot: Bot, routing: TopicRouting) -> Self {
-        Self { bot, routing }
+    pub fn new(bot: Bot, routing: TopicRouting, max_text_chars: usize) -> Self {
+        Self {
+            bot,
+            routing,
+            max_text_chars,
+        }
     }
 }
 
@@ -31,11 +38,7 @@ impl Notifier for TelegramNotifier {
         let (chat, thread, reply_to) = match notification.destination {
             Destination::Topic(topic) => (
                 self.routing.chat_id,
-                self.routing
-                    .threads
-                    .get(&topic)
-                    .copied()
-                    .or(Some(topic.default_thread_id())),
+                self.routing.threads.get(&topic).copied(),
                 None,
             ),
             Destination::Reply(to) => (to.chat_id, to.thread_id, Some(to.message_id)),
@@ -43,7 +46,7 @@ impl Notifier for TelegramNotifier {
 
         let mut request = self
             .bot
-            .send_message(ChatId(chat), notification.text)
+            .send_message(ChatId(chat), truncate(notification.text, self.max_text_chars))
             .disable_notification(notification.silent)
             .link_preview_options(LinkPreviewOptions {
                 is_disabled: true,
