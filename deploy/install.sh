@@ -145,7 +145,7 @@ write_initial_config() {
 # Topic thread ids are optional: only the ones set in the environment are written.
 write_preset_topics() {
   local topic name value
-  for topic in GENERAL GITHUB LOGS NOTIFICATIONS DOCUMENTS ASSETS SHARING; do
+  for topic in GENERAL GITHUB LOGS NOTIFICATIONS; do
     name=TELEGRAM_TOPIC_${topic}
     value=${!name:-}
     [[ -n $value ]] || continue

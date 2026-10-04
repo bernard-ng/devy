@@ -9,20 +9,14 @@ pub enum Topic {
     Github,
     Logs,
     Notifications,
-    Documents,
-    Assets,
-    Sharing,
 }
 
 impl Topic {
-    pub const ALL: [Topic; 7] = [
+    pub const ALL: [Topic; 4] = [
         Topic::General,
         Topic::Github,
         Topic::Logs,
         Topic::Notifications,
-        Topic::Documents,
-        Topic::Assets,
-        Topic::Sharing,
     ];
 
     pub fn key(self) -> &'static str {
@@ -31,9 +25,6 @@ impl Topic {
             Topic::Github => "github",
             Topic::Logs => "logs",
             Topic::Notifications => "notifications",
-            Topic::Documents => "documents",
-            Topic::Assets => "assets",
-            Topic::Sharing => "sharing",
         }
     }
 }
