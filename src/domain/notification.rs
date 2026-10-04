@@ -12,12 +12,7 @@ pub enum Topic {
 }
 
 impl Topic {
-    pub const ALL: [Topic; 4] = [
-        Topic::General,
-        Topic::Github,
-        Topic::Logs,
-        Topic::Notifications,
-    ];
+    pub const ALL: [Topic; 4] = [Topic::General, Topic::Github, Topic::Logs, Topic::Notifications];
 
     pub fn key(self) -> &'static str {
         match self {
