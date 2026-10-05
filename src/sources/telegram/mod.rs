@@ -9,6 +9,7 @@ use teloxide::utils::command::{BotCommands, ParseError};
 use self::commands::{Command, UNKNOWN_COMMAND_REPLY};
 use super::{SourceError, WebhookRequest, WebhookSource, auth};
 use crate::config::Secret;
+use crate::domain::message::escape;
 use crate::domain::{Notification, ReplyTo};
 
 pub struct TelegramSource {
@@ -41,7 +42,7 @@ impl TelegramSource {
         };
 
         match Command::parse(text, &self.bot_username) {
-            Ok(command) => Some(Notification::reply(to, command.answer())),
+            Ok(command) => Some(Notification::reply(to, escape(&command.answer()))),
             // Addressed to another bot of the group: none of our business.
             Err(ParseError::WrongBotName(_)) => None,
             Err(_) => Some(Notification::reply(to, UNKNOWN_COMMAND_REPLY).silent()),

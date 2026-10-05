@@ -42,8 +42,8 @@ Telegram only calls HTTPS webhooks, so put a reverse proxy with TLS (Caddy, ngin
 
 | Layer | Path | Knows about |
 |---|---|---|
-| Domain | `src/domain` | `Notification`, `Topic`, the `Notifier` port, the GitHub `Activity` model and its wording. No octocrab/teloxide/axum. |
-| Inbound adapters | `src/sources` | Authentication and payload typing (octocrab models, teloxide `Update`), mapped into the domain. |
+| Domain | `src/domain` | `Notification`, `Topic`, the `Notifier` port and `Card`, the layout every message goes through (escaping, size limits). No octocrab/teloxide/axum. |
+| Inbound adapters | `src/sources` | Authentication and payload typing (octocrab models, teloxide `Update`), turned straight into cards. |
 | Outbound adapter | `src/telegram` | `TelegramNotifier` (teloxide) and topic -> chat/thread routing. |
 | Application | `src/app.rs` | Looks up a source, interprets the request inline, delivers in the background. |
 | HTTP | `src/http` | axum router: `POST /webhook/{source}`, `GET /health`. |
@@ -51,10 +51,14 @@ Telegram only calls HTTPS webhooks, so put a reverse proxy with TLS (Caddy, ngin
 ### Extending
 
 - **New webhook integration**: implement `sources::WebhookSource` (`name`, `receive`) and register it with `Sources::with(..)` in `cli.rs`. It is served at `/webhook/{name}`.
-- **New GitHub event**: add an `Activity` variant (`domain/github.rs`), map it in `sources/github/mapping.rs`, and add its name to `HANDLED_EVENTS`.
+- **New GitHub event**: add its name to `HANDLED_EVENTS` (`sources/github/mod.rs`), decide which actions are announced and how loudly in `sources/github/events.rs`, and write its wording in `sources/github/messages.rs`.
 - **New chat command**: add a variant to `sources/telegram/commands.rs::Command` and its answer.
 - **New destination** (Slack, Discord, ...): implement `domain::ports::Notifier`.
 - **New topic**: add a `Topic` variant; its thread id is configurable with `TELEGRAM_TOPIC_<NAME>`.
+
+### Messages
+
+Notifications are Telegram HTML: a bold `owner/repo` and what happened, the subject as a link, a few detail lines and an optional quote. Everything goes through `Card`, which escapes user text and cuts it to size before adding tags. Events are routed to four topics: `notifications` (needs a person: review requests, failed CI, security alerts), `github` (code flow), `logs` (CI results, deployments, audit) and `general` (stars, forks, discussions, sponsors). Quiet events are delivered without a sound, and so is anything done by a `[bot]` account unless it is addressed to a person.
 
 ## License
 

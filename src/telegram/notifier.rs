@@ -2,9 +2,8 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use teloxide::prelude::*;
-use teloxide::types::{LinkPreviewOptions, MessageId, ReplyParameters, ThreadId};
+use teloxide::types::{LinkPreviewOptions, MessageId, ParseMode, ReplyParameters, ThreadId};
 
-use crate::domain::notification::truncate;
 use crate::domain::ports::{Notifier, NotifyError};
 use crate::domain::{Destination, Notification, Topic};
 
@@ -19,16 +18,11 @@ pub struct TopicRouting {
 pub struct TelegramNotifier {
     bot: Bot,
     routing: TopicRouting,
-    max_text_chars: usize,
 }
 
 impl TelegramNotifier {
-    pub fn new(bot: Bot, routing: TopicRouting, max_text_chars: usize) -> Self {
-        Self {
-            bot,
-            routing,
-            max_text_chars,
-        }
+    pub fn new(bot: Bot, routing: TopicRouting) -> Self {
+        Self { bot, routing }
     }
 }
 
@@ -46,7 +40,8 @@ impl Notifier for TelegramNotifier {
 
         let mut request = self
             .bot
-            .send_message(ChatId(chat), truncate(notification.text, self.max_text_chars))
+            .send_message(ChatId(chat), notification.text)
+            .parse_mode(ParseMode::Html)
             .disable_notification(notification.silent)
             .link_preview_options(LinkPreviewOptions {
                 is_disabled: true,

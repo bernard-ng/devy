@@ -8,6 +8,7 @@ use tokio::net::TcpListener;
 
 use crate::app::App;
 use crate::config::{Settings, TelegramSettings};
+use crate::domain::message::TextBudget;
 use crate::sources::Sources;
 use crate::sources::github::GithubSource;
 use crate::sources::telegram::TelegramSource;
@@ -63,13 +64,15 @@ async fn serve() -> anyhow::Result<()> {
             chat_id: telegram.chat_id,
             threads: telegram.topics.clone(),
         },
-        limits.max_text_chars,
     );
 
     let sources = Sources::new()
         .with(GithubSource::new(
             github.webhook_secret,
-            limits.body_excerpt_chars,
+            TextBudget {
+                excerpt_chars: limits.body_excerpt_chars,
+                max_text_chars: limits.max_text_chars,
+            },
         ))
         .with(TelegramSource::new(
             telegram.webhook_secret,

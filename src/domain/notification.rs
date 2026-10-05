@@ -61,6 +61,8 @@ pub enum Destination {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Notification {
     pub destination: Destination,
+    /// Telegram HTML. Build it with [`Card`](crate::domain::message::Card) or escape it
+    /// with [`escape`](crate::domain::message::escape).
     pub text: String,
     /// Delivered without a sound/vibration.
     pub silent: bool,
@@ -89,43 +91,9 @@ impl Notification {
     }
 }
 
-/// Cuts `text` to at most `max` characters, ending with `…` when something was dropped.
-pub fn truncate(text: String, max: usize) -> String {
-    if text.chars().count() <= max {
-        return text;
-    }
-    let mut cut: String = text.chars().take(max - 1).collect();
-    cut.push('…');
-    cut
-}
-
-/// Shortens user-written content (comments, commit messages) so the rest of the message, links
-/// included, always fits.
-pub fn excerpt(text: &str, max: usize) -> String {
-    truncate(text.trim().to_owned(), max)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn long_text_is_truncated_to_the_limit() {
-        let cut = truncate("é".repeat(110), 100);
-        assert_eq!(cut.chars().count(), 100);
-        assert!(cut.ends_with('…'));
-    }
-
-    #[test]
-    fn excerpt_trims_and_shortens() {
-        assert_eq!(excerpt("  hi \n", 10), "hi");
-        assert_eq!(excerpt("abcdef", 4), "abc…");
-    }
-
-    #[test]
-    fn short_text_is_untouched() {
-        assert_eq!(Notification::to_topic(Topic::Github, "hi").text, "hi");
-    }
 
     #[test]
     fn topics_round_trip_through_their_key() {
